@@ -30,6 +30,12 @@ library(shiny)
 # Read in World Data
 covid <- read.csv("covid_19_data.csv")
 
+covid <- covid %>% 
+  mutate(ObservationDate = mdy(ObservationDate))
+
+covid %>% 
+  filter(ObservationDate == "2020-06-10")
+
 # Create results for only the US
 data_US <- covid %>%
   filter(Country.Region == "US" & Province.State %in% state.name) %>%
