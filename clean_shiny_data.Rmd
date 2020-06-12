@@ -34,12 +34,15 @@ covid <- covid %>%
   mutate(ObservationDate = mdy(ObservationDate))
 
 covid %>% 
-  filter(ObservationDate == "2020-06-10")
+  filter(ObservationDate == "2020-06-05" & Province.State == "")
 
 # Create results for only the US
 data_US <- covid %>%
   filter(Country.Region == "US" & Province.State %in% state.name) %>%
   mutate(ObservationDate = mdy(ObservationDate))
+
+USA <- covid %>% 
+  filter(Country.Region == "United States of America")
 
 # This just tells me how many rows I have for each state
 # covidUS %>% 
@@ -93,6 +96,8 @@ countries <- countries %>%
   mutate(name = as.character(name))
 countries %>% 
   arrange(name)
+
+merge(world_countries$name, countries$name)
 ```
 
 ```{r}
@@ -117,6 +122,10 @@ covid$Country.Region[covid$Country.Region == "West Bank and Gaza"] <- "West Bank
 ```
 
 
+```{r}
+world_countries <- merge(world_countries, combined_yes,
+                         by.x = "name", by.y = "country_name")
+```
 
 
 
