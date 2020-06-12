@@ -1,0 +1,140 @@
+---
+title: "clean_shiny_data"
+author: "Declan Molony"
+date: "6/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(ggthemes)
+library(sp)
+library(geojson)
+library(geojsonio)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+library(fmsb)
+library(rsconnect)
+library(stringr)
+library(shinythemes)
+library(maps)
+library(broom)
+library(shiny)
+```
+
+```{r}
+# Read in World Data
+covid <- read.csv("covid_19_data.csv")
+
+# Create results for only the US
+data_US <- covid %>%
+  filter(Country.Region == "US" & Province.State %in% state.name) %>%
+  mutate(ObservationDate = mdy(ObservationDate))
+
+# This just tells me how many rows I have for each state
+# covidUS %>% 
+#   mutate(Province.State = as.character(Province.State)) %>% 
+#   group_by(Province.State) %>% 
+#   summarise(count = n()) %>% 
+#   arrange(Province.State)
+```
+
+```{r}
+NY <- data_US %>% 
+  filter(Province.State == "New York")
+
+#mdy(NY$ObservationDate)
+```
+
+```{r}
+data_US %>% 
+  filter(Province.State == c(state.name[32],state.name[5])) %>% 
+  ggplot() +
+    geom_point(mapping = aes(x = ObservationDate, y = Confirmed, 
+                             color = Province.State)) +
+  ggtitle("Individual State Responses to COVID-19") +
+  theme_minimal()
+```
+
+```{r general_info}
+covid %>% 
+  mutate(Country.Region = as.character(Country.Region)) %>% 
+  group_by(Country.Region) %>% 
+  summarise(count = n()) %>% 
+  arrange(Country.Region)
+
+```
+
+```{r}
+world_countries <- geojson_read(x = "countries.geo.json", 
+                                what = "sp")
+
+world_countries$name[world_countries$name == "Singapore"]
+world_countries$name
+```
+
+```{r}
+covid <- covid %>% 
+  mutate(Country.Region = as.character(Country.Region))
+
+countries <- data.frame(unique(covid$Country.Region))
+colnames(countries) <- "name"
+countries <- countries %>% 
+  mutate(name = as.character(name))
+countries %>% 
+  arrange(name)
+```
+
+```{r}
+covid$Country.Region[covid$Country.Region == " Azerbaijan"] <- "Azerbaijan"
+covid$Country.Region[covid$Country.Region == "('St. Martin',)"] <- "St. Martin"
+covid$Country.Region[covid$Country.Region == "Bahamas"] <- "The Bahamas"
+covid$Country.Region[covid$Country.Region == "Bahamas, The"] <- "The Bahamas"
+covid$Country.Region[covid$Country.Region == "Congo (Brazzaville)"] <- "Republic of the Congo"
+covid$Country.Region[covid$Country.Region == "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+covid$Country.Region[covid$Country.Region == "Gambia, The"] <- "Gambia"
+covid$Country.Region[covid$Country.Region == "Hong Kong"] <- "China"
+covid$Country.Region[covid$Country.Region == "Mainland China"] <- "China"
+covid$Country.Region[covid$Country.Region == "UK"] <- "United Kingdom"
+covid$Country.Region[covid$Country.Region == "North Ireland"] <- "United Kingdom"
+covid$Country.Region[covid$Country.Region == "occupied Palestinian territory"] <- "Palestine"
+covid$Country.Region[covid$Country.Region == "Republic of Ireland"] <- "Ireland"
+covid$Country.Region[covid$Country.Region == "Timor-Leste"] <- "East Timor"
+covid$Country.Region[covid$Country.Region == "US"] <- "United States of America"
+covid$Country.Region[covid$Country.Region == "West Bank and Gaza"] <- "West Bank"
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
