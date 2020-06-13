@@ -1,0 +1,10 @@
+name: 431shiny
+title:
+username:
+account: declanmolony
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2449051
+bundleId: 3264403
+url: https://declanmolony.shinyapps.io/431shiny/
+when: 1592025052.87783
