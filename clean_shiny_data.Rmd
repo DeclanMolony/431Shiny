@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggplot2)
+library(viridis)
 library(lubridate)
 library(ggthemes)
 library(sp)
@@ -22,7 +23,6 @@ library(rsconnect)
 library(stringr)
 library(shinythemes)
 library(maps)
-library(broom)
 library(shiny)
 ```
 
@@ -30,19 +30,68 @@ library(shiny)
 # Read in World Data
 covid <- read.csv("covid_19_data.csv")
 
-covid <- covid %>% 
-  mutate(ObservationDate = mdy(ObservationDate))
-
-covid %>% 
-  filter(ObservationDate == "2020-06-05" & Province.State == "")
-
 # Create results for only the US
 data_US <- covid %>%
   filter(Country.Region == "US" & Province.State %in% state.name) %>%
   mutate(ObservationDate = mdy(ObservationDate))
+colnames(data_US)[3] <- "States"
+colnames(data_US)[7] <- "Death"
 
-USA <- covid %>% 
-  filter(Country.Region == "United States of America")
+# Prepare world data
+covid <- covid %>% 
+  mutate(ObservationDate = mdy(ObservationDate),
+         Country.Region = as.character(Country.Region))
+
+#Clean the country names to work with the geo.json
+covid$Country.Region[covid$Country.Region == " Azerbaijan"] <- "Azerbaijan"
+covid$Country.Region[covid$Country.Region == "('St. Martin',)"] <- "St. Martin"
+covid$Country.Region[covid$Country.Region == "Bahamas"] <- "The Bahamas"
+covid$Country.Region[covid$Country.Region == "Bahamas, The"] <- "The Bahamas"
+covid$Country.Region[covid$Country.Region == "Congo (Brazzaville)"] <- "Republic of the Congo"
+covid$Country.Region[covid$Country.Region == "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+covid$Country.Region[covid$Country.Region == "Gambia, The"] <- "Gambia"
+covid$Country.Region[covid$Country.Region == "Hong Kong"] <- "China"
+covid$Country.Region[covid$Country.Region == "Mainland China"] <- "China"
+covid$Country.Region[covid$Country.Region == "UK"] <- "United Kingdom"
+covid$Country.Region[covid$Country.Region == "North Ireland"] <- "United Kingdom"
+covid$Country.Region[covid$Country.Region == "occupied Palestinian territory"] <- "Palestine"
+covid$Country.Region[covid$Country.Region == "Republic of Ireland"] <- "Ireland"
+covid$Country.Region[covid$Country.Region == "Timor-Leste"] <- "East Timor"
+covid$Country.Region[covid$Country.Region == "US"] <- "United States of America"
+covid$Country.Region[covid$Country.Region == "West Bank and Gaza"] <- "West Bank"
+
+
+# Find the totals for each date per country for Confirmed, Deaths, & Recovered
+covid <- covid %>% 
+  group_by(Country.Region, ObservationDate) %>% 
+  summarise(Confirmed = sum(Confirmed), Deaths = sum(Deaths), 
+            Recovered = sum(Recovered))
+
+# Read in the geo.json
+world_countries <- geojson_read(x = "countries.geo.json", 
+                                what = "sp")
+
+# START OF SHINY
+# Read in the desired date (this will be the user input for Shiny)
+the_fifth <- covid %>% 
+  filter(ObservationDate == "2020-06-05")
+# Merge the desired date and world country Large SpatialPolygonsDataFrame
+world_countries <- merge(world_countries, the_fifth,
+                         by.x = "name", by.y = "Country.Region")
+```
+
+```{r}
+# Old stuff to add United States country data in
+# US_rows <- data_US %>% 
+#   group_by(ObservationDate) %>% 
+#   summarise(Confirmed = sum(Confirmed), Deaths = sum(Deaths), 
+#             Recovered = sum(Recovered))
+# Country.Region <- rep("United States of America", 103)
+# 
+# US_total_rows <- cbind(Country.Region,US_rows)
+# 
+# covid <- rbind(covid, US_total_rows)
+
 
 # This just tells me how many rows I have for each state
 # covidUS %>% 
@@ -52,21 +101,27 @@ USA <- covid %>%
 #   arrange(Province.State)
 ```
 
+
 ```{r}
 NY <- data_US %>% 
-  filter(Province.State == "New York")
-
-#mdy(NY$ObservationDate)
+  filter(States == "New York")
 ```
 
 ```{r}
-data_US %>% 
-  filter(Province.State == c(state.name[32],state.name[5])) %>% 
+scatter <- data_US %>% 
+  filter(States == c(state.name[32],state.name[5])) %>% 
   ggplot() +
     geom_point(mapping = aes(x = ObservationDate, y = Confirmed, 
-                             color = Province.State)) +
-  ggtitle("Individual State Responses to COVID-19") +
-  theme_minimal()
+                             color = States)) +
+  ggtitle("Comparison of COVID-19 Impact by State") 
+
+scatter + theme_stata() + scale_color_stata() +
+  theme(axis.title.y = element_text(angle = 0, vjust = 0.5, face = "bold"),
+        axis.title.x = element_text(face = "bold"),
+        axis.text.y = element_text(angle = 0),
+        title = element_text(face = "bold"))
+
+
 ```
 
 ```{r general_info}
@@ -82,9 +137,14 @@ covid %>%
 world_countries <- geojson_read(x = "countries.geo.json", 
                                 what = "sp")
 
-world_countries$name[world_countries$name == "Singapore"]
 world_countries$name
 ```
+
+
+
+
+
+
 
 ```{r}
 covid <- covid %>% 
@@ -97,7 +157,6 @@ countries <- countries %>%
 countries %>% 
   arrange(name)
 
-merge(world_countries$name, countries$name)
 ```
 
 ```{r}
@@ -117,18 +176,76 @@ covid$Country.Region[covid$Country.Region == "Republic of Ireland"] <- "Ireland"
 covid$Country.Region[covid$Country.Region == "Timor-Leste"] <- "East Timor"
 covid$Country.Region[covid$Country.Region == "US"] <- "United States of America"
 covid$Country.Region[covid$Country.Region == "West Bank and Gaza"] <- "West Bank"
-
-
 ```
+
 
 
 ```{r}
-world_countries <- merge(world_countries, combined_yes,
-                         by.x = "name", by.y = "country_name")
+the_fifth <- covid %>% 
+  filter(ObservationDate == "2020-06-05")
 ```
 
+```{r}
+world_countries <- merge(world_countries, the_fifth,
+                         by.x = "name", by.y = "Country.Region")
+```
 
+```{r}
+data.frame(world_countries)
+```
 
+```{r}
+#This is for the colouring, I used the viridis palette
+#It's based on a logarithmic scale
+bins <- c(0, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
+pal <- colorBin("Reds", domain = world_countries$Confirmed,
+                bins = bins)
+
+#This is to set-up a generic leaflet from the data
+corona_cases <- leaflet(world_countries) %>% 
+  setView(0, 0, 1) %>%
+  addProviderTiles("MapBox", options = providerTileOptions(
+    id = "mapbox.light",
+    accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN')))
+
+#This is for the labels when you hover over a country
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g is the number of<br>coronavirus cases",
+  world_countries$name, world_countries$Confirmed) %>%
+  lapply(htmltools::HTML)
+
+#This is the entire leaflet
+corona_cases %>% 
+  #addTiles() to turn the ocean blue
+  addTiles() %>% 
+  addPolygons(
+  #Add colouring to countries
+  fillColor = ~pal(Confirmed),
+  weight = 2,
+  opacity = 1,
+  color = "white",
+  dashArray = "3",
+  fillOpacity = 0.7,
+  #Add highlighting when you hover over a country
+  highlight = highlightOptions(
+    weight = 5,
+    color = "#666",
+    dashArray = "",
+    fillOpacity = 0.7,
+    bringToFront = TRUE),
+  #Labeling for when you hover over a country
+  label = labels,
+  labelOptions = labelOptions(
+    style = list("font-weight" = "normal", padding = "3px 8px"),
+    textsize = "15px",
+    direction = "auto")) %>% 
+  #This is for creating a legend
+  addLegend(pal = pal, values = ~Confirmed, opacity = 0.7, 
+            title = "Number of coronavirus<br>cases per country",
+            na.label = "No data yet",
+            position = "bottomright")
+
+```
 
 
 
