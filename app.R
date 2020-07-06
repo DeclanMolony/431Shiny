@@ -17,7 +17,7 @@ library(ggthemes)
 library(shiny)
 
 # Read in the data and clean it
-covid <- read.csv("covid_19_data.csv")
+covid <- read.csv("covid_19_data_thru_June29.csv")
 
 # CLEAN THE DATA
 new_york_less <- state.name[c(1:31,33:50)]
@@ -110,7 +110,7 @@ ui <- fluidPage(theme = shinytheme("journal"),
                                      c("Texas", texas_less))
                                      ),
                     mainPanel(plotOutput("point"),
-                                  textOutput("directions")))),
+                              textOutput("directions")))),
                 
                 tabPanel("Global Outbreak Map",
                     sidebarLayout(
@@ -119,8 +119,8 @@ ui <- fluidPage(theme = shinytheme("journal"),
                             sliderInput("dates",
                                         "Covid Cases on this day:",
                                         min = mdy("01-22-2020"),
-                                        max = mdy("06-10-2020"),
-                                        value = mdy("06-10-2020"))
+                                        max = mdy("06-29-2020"),
+                                        value = mdy("06-29-2020"))
                                     ),
                     mainPanel(leafletOutput("worldmap"),
                               textOutput("map_directions"))))
